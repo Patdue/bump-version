@@ -1,7 +1,6 @@
-FROM alpine:3.10
+FROM python:3.7-alpine
 
-COPY LICENSE README.md /
+COPY github_actions.py /github_actions.py
+COPY bump_version.py /bump_versions.py
 
-COPY entrypoint.sh /entrypoint.sh
-
-ENTRYPOINT ["/entrypoint.sh"]
+ENTRYPOINT ["python", "bump_versions.py"]

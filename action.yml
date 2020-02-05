@@ -1,12 +1,24 @@
-name: 'Container Action Template'
-description: 'Get started with Container actions'
-author: 'GitHub'
+name: 'Bump Version'
+description: 'Bump the version in a file to a specific version.'
+author: 'Patdue'
+branding:
+  icon: 'chevron-up'
+  color: 'green'
 inputs: 
-  myInput:
-    description: 'Input to use'
-    default: 'world'
+  version:
+    description: 'The version to write.'
+    required: true
+  files:
+    description: 'In which files to bump the version. Supply multiple files separated by spaces.'
+    default: '/.VERSION'
+    required: false
+  marker:
+    description: 'Lines following a marker are checked for a version bump.'
+    default: '[bump]'
+    required: false
+outputs:
+  files:
+    description: 'In which files the version was updated. (The input files, if everything was successful)'
 runs:
   using: 'docker'
   image: 'Dockerfile'
-  args:
-    - ${{ inputs.myInput }}
