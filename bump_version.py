@@ -16,37 +16,19 @@ SEMVER_REGEX = re.compile(
 _no_fill = object()
 
 
-def ngrams(iterable: Iterable, n: int = 2, fillvalue: Any = _no_fill) -> Iterable:
+def iter_with_history(iterable: Iterable, n: int = 2, fillvalue: Any = _no_fill) -> Iterable:
     """
     Yield subsequent overlapping tuples of size n from iterable.
     """
     if n < 1:
         raise ValueError('n must be a positive integer.')
-
     iterator = iter(iterable)
-
-    # Populate the history with n elements, fill it up with fillvalues if the iterable is too small.
-    history = deque(maxlen=n)
-    fill_size = 0
-    for _ in range(n):
-        try:
-            history.append(next(iterator))
-        except StopIteration:
-            if fillvalue is _no_fill:
-                return
-            history.append(fillvalue)
-            fill_size += 1
-
-    for element in iterator:
-        yield tuple(history)
+    history = deque([fillvalue for _ in range(n)], maxlen=n)
+    for i, element in enumerate(iterator):
         history.append(element)
-
-    yield tuple(history)
-
-    if fillvalue is not _no_fill:
-        for _ in range(n-fill_size-1):
-            history.append(fillvalue)
-            yield tuple(history)
+        if _no_fill in history:
+            continue
+        yield tuple(history)
 
 
 class NoVersionUpdated(Exception):
@@ -61,13 +43,13 @@ def bump_versions(file, version, marker):
     found_marker = False
     version_bump_count = 0
 
-    for previous, line in ngrams(file, 2, fillvalue=None):
-        if marker in previous:
+    for previous, line in iter_with_history(file, 2, fillvalue=None):
+        if previous and marker in previous:
             found_marker = True
             if line is not None:
                 line, k = re.subn(SEMVER_REGEX, version, line)
                 version_bump_count += k
-        yield previous
+        yield line
 
     if not found_marker:
         raise MarkerNotFoundException("Found no marker '%s'", marker)
@@ -85,12 +67,15 @@ def bump_file(file, version, marker):
 
 
 def bump_files(files, version, marker):
+    updated_files = []
     for file in files:
         try:
             bump_file(file, version, marker)
-            yield file
+            updated_files.append(file)
         except (NoVersionUpdated, MarkerNotFoundException) as e:
             logging.warning("Version in file '%s' was not updated, caused by: %s", file, e)
+
+    return updated_files
 
 
 def main():
